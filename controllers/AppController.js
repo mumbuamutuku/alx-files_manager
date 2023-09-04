@@ -9,9 +9,8 @@ class AppController {
 
     if (redisStatus && dbStatus) {
       return res.status(200).json({ redis: true, db: true });
-    } else {
-      return res.status(500).json({ redis: redisStatus, db: dbStatus });
     }
+    return res.status(500).json({ redis: redisStatus, db: dbStatus });
   }
 
   static async getStats(req, res) {

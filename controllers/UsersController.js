@@ -1,8 +1,8 @@
 // controllers/UsersController.js
 const { v4: uuidv4 } = require('uuid');
-const dbClient = require('../utils/db');
-const redisClient = require('../utils/redis');
 const crypto = require('crypto');
+const dbClient = require('../utils/db');
+// const redisClient = require('../utils/redis');
 
 class UsersController {
   static async postNew(req, res) {
@@ -18,7 +18,7 @@ class UsersController {
     }
 
     // Check if the email already exists in the database
-    const usersCount = await dbClient.nbUsers();
+    // const usersCount = await dbClient.nbUsers();
     const existingUser = await dbClient.client.db().collection('users').findOne({ email });
 
     if (existingUser) {
@@ -41,9 +41,8 @@ class UsersController {
     // Check if the insertion was successful
     if (result.insertedCount === 1) {
       return res.status(201).json({ id: newUser.id, email: newUser.email });
-    } else {
-      return res.status(500).json({ error: 'Internal Server Error' });
     }
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
 
