@@ -41,4 +41,4 @@ export class DBClient {
 // create and export instance of dbclient
 const dbClient = new DBClient();
 
-export default dbClient;
+module.exports = dbClient;
