@@ -5,7 +5,7 @@ const redisClient = require('../utils/redis');
 const crypto = require('crypto');
 
 
-class UserControllers {
+class UsersControllers {
     static async postNew(req, res) {
         // Get user data from the request body
         const { email, password } = req.body;
