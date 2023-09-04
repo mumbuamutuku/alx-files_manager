@@ -2,7 +2,7 @@
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const dbClient = require('../utils/db');
-// const redisClient = require('../utils/redis');
+const redisClient = require('../utils/redis');
 
 class UsersController {
   static async postNew(req, res) {
@@ -43,6 +43,31 @@ class UsersController {
       return res.status(201).json({ id: newUser.id, email: newUser.email });
     }
     return res.status(500).json({ error: 'Internal Server Error' });
+  }
+
+  static async getMe(req, res) {
+    const token = req.headers['x-token'];
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Retrieve the user ID associated with the token from Redis
+    const userId = await redisClient.client.get(`auth_${token}`);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Retrieve the user based on the user ID
+    const user = await dbClient.client.db().collection('users').findOne({ _id: userId });
+
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Return the user object with email and id
+    return res.status(200).json({ email: user.email, id: user._id });
   }
 }
 
