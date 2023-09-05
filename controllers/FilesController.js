@@ -61,8 +61,8 @@ export default class FilesController {
 			//decode base^4 data and write it local file
 			const dataFile = Buffer.from(data, 'base64');
 			fs.writeFileSync(localPath, dataFile);
-
-			newFile.localPath = localPath; 
+			
+			newFile.localPath = localPath;
 		}
 		
 		//insert new file
@@ -77,4 +77,3 @@ export default class FilesController {
 }
 
 module.exports = FilesController;
-
