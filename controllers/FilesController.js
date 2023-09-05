@@ -82,13 +82,18 @@ export default class FilesController {
   }
 
   static async getShow(req, res) {
-    const userId = req.user._id;
-    const { id } = req.params;
-    const file = await dbClient.filterFiles({ _id: id});
+    const token = req.headers['x-token'];
+    const fileId = req.params.id;
+    const userId = await redisClient.client.get(`auth_${token}`);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const file = await dbClient.client.db().collection('files').findOne({ _id: fileId, userId });
+
     if (!file) {
-      res.status(404).json({ error: 'Not found'}).end();
-    } else  if(String(file.userId) !== String(userId)) {
-      res.status404.json({ error: 'Not found' }).end();
+      res.status(404).json({ error: 'FIle not found'}).end();
     } else {
       res.status(200).json(file).end();
     }
