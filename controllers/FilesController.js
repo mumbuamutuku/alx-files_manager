@@ -94,17 +94,15 @@ export default class FilesController {
 
     if (!file) {
       res.status(404).json({ error: 'FIle not found'}).end();
-    } else {
+    } 
       res.status(200).json(file).end();
-    }
   }
 
   static async getIndex(req, res) {
-    const token = req.headers['x-token'];
     const parentId = req.query.parentId || 0;
-    const page = parseInt(req.query.page) || 0;
-
-    const userId = await redisClient.client.get(`auth_{$token}`);
+    const page = parseInt(req.query.page, 10) || 0;
+    
+    const userId = await redisClient.client.get(`auth_${req.headers['x-token']}`);
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
