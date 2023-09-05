@@ -1,12 +1,12 @@
 // controllers/AuthController.js
-const dbClient = require('../utils/db');
-const redisClient = require('../utils/redis');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const dbClient = require('../utils/db');
+const redisClient = require('../utils/redis');
 
 class AuthController {
   static async getConnect(req, res) {
-    const authHeaders = req.headers['authorization'];
+    const authHeaders = req.headers.authorization;
     if (!authHeaders || !authHeaders.startsWith('Basic ')) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -40,7 +40,7 @@ class AuthController {
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     // Retrieve the user ID associated with the token from Redis
     const userId = await redisClient.client.get(`auth_${token}`);
 
@@ -56,4 +56,3 @@ class AuthController {
 }
 
 module.exports = AuthController;
-
