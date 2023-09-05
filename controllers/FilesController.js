@@ -89,37 +89,37 @@ export default class FilesController {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const file = await dbClient.client.db().collection('files').findOne({ _id: fileId, userId });
 
     if (!file) {
-      res.status(404).json({ error: 'FIle not found'}).end();
-    } 
-      res.status(200).json(file).end();
+      res.status(404).json({ error: 'FIle not found' }).end();
+    }
+    res.status(200).json(file).end();
   }
 
   static async getIndex(req, res) {
     const parentId = req.query.parentId || 0;
     const page = parseInt(req.query.page, 10) || 0;
-    
+
     const userId = await redisClient.client.get(`auth_${req.headers['x-token']}`);
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    
+
     const itemPerPage = 20;
     const skip = page * itemPerPage;
 
     const query = { parentId, userId };
     const files = await dbClient.client
-    .db()
-    .collection('files')
-    .find(query)
-    .skip(skip)
-    .limit(itemPerPage)
-    .toArray();
-    
+      .db()
+      .collection('files')
+      .find(query)
+      .skip(skip)
+      .limit(itemPerPage)
+      .toArray();
+
     return res.status(200).json(files);
   }
 }
