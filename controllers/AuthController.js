@@ -41,7 +41,17 @@ class AuthController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
-    // Continue with your disconnect logic here...
+    // Retrieve the user ID associated with the token from Redis
+    const userId = await redisClient.client.get(`auth_${token}`);
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Delete the token from Redis
+    await redisClient.client.del(`auth_${token}`);
+
+    return res.status(204).send();
   }
 }
 
