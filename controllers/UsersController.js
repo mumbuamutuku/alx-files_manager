@@ -1,73 +1,62 @@
-// controllers/UsersController.js
-const { v4: uuidv4 } = require('uuid');
-const crypto = require('crypto');
-const dbClient = require('../utils/db');
-const redisClient = require('../utils/redis');
+import sha1 from 'sha1';
+import { ObjectID } from 'mongodb';
+import Queue from 'bull';
+import dbClient from '../utils/db';
+import redisClient from '../utils/redis';
+
+const userQueue = new Queue('userQueue', 'redis://127.0.0.1:6379');
 
 class UsersController {
-  static async postNew(req, res) {
-    // Get user data from the request body
-    const { email, password } = req.body;
+  static postNew(request, response) {
+    const { email } = request.body;
+    const { password } = request.body;
 
-    // Check for missing email or password
     if (!email) {
-      return res.status(400).json({ error: 'Missing email' });
+      response.status(400).json({ error: 'Missing email' });
+      return;
     }
     if (!password) {
-      return res.status(400).json({ error: 'Missing password' });
+      response.status(400).json({ error: 'Missing password' });
+      return;
     }
 
-    // Check if the email already exists in the database
-    // const usersCount = await dbClient.nbUsers();
-    const existingUser = await dbClient.client.db().collection('users').findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).json({ error: 'Already exists' });
-    }
-
-    // Hash the password using SHA1
-    const hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
-
-    // Create a new user object
-    const newUser = {
-      email,
-      password: hashedPassword,
-      id: uuidv4(), // Generate a new UUID for the user
-    };
-
-    // Insert the new user into the database
-    const result = await dbClient.client.db().collection('users').insertOne(newUser);
-
-    // Check if the insertion was successful
-    if (result.insertedCount === 1) {
-      return res.status(201).json({ id: newUser.id, email: newUser.email });
-    }
-    return res.status(500).json({ error: 'Internal Server Error' });
+    const users = dbClient.db.collection('users');
+    users.findOne({ email }, (err, user) => {
+      if (user) {
+        response.status(400).json({ error: 'Already exist' });
+      } else {
+        const hashedPassword = sha1(password);
+        users.insertOne(
+          {
+            email,
+            password: hashedPassword,
+          },
+        ).then((result) => {
+          response.status(201).json({ id: result.insertedId, email });
+          userQueue.add({ userId: result.insertedId });
+        }).catch((error) => console.log(error));
+      }
+    });
   }
 
-  static async getMe(req, res) {
-    const token = req.headers['x-token'];
-
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' });
+  static async getMe(request, response) {
+    const token = request.header('X-Token');
+    const key = `auth_${token}`;
+    const userId = await redisClient.get(key);
+    if (userId) {
+      const users = dbClient.db.collection('users');
+      const idObject = new ObjectID(userId);
+      users.findOne({ _id: idObject }, (err, user) => {
+        if (user) {
+          response.status(200).json({ id: userId, email: user.email });
+        } else {
+          response.status(401).json({ error: 'Unauthorized' });
+        }
+      });
+    } else {
+      console.log('Hupatikani!');
+      response.status(401).json({ error: 'Unauthorized' });
     }
-
-    // Retrieve the user ID associated with the token from Redis
-    const userId = await redisClient.client.get(`auth_${token}`);
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Retrieve the user based on the user ID
-    const user = await dbClient.client.db().collection('users').findOne({ _id: userId });
-
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    // Return the user object with email and id
-    return res.status(200).json({ email: user.email, id: user._id });
   }
 }
 
